@@ -1,0 +1,321 @@
+---
+title: "Exercise 4"
+---
+
+```{r setup, include=F}
+  knitr::opts_chunk$set(collapse = TRUE, echo = FALSE, message = FALSE,warning = FALSE,
+  fig.width = 4, fig.height = 3, comment = "#>")
+  library(ggplot2)
+  library(reshape2)
+  library(cowplot)
+  source("C:/Users/barretttj/Desktop/LRP_workshop/functions.R")
+  Data <- readRDS("C:/Users/barretttj/Desktop/LRP_workshop/Exercise 4/ex4_data.rda")
+  
+WAA <- Data$WAA # weight-at-age 
+MAT <- Data$MAT # maturity-at-age 
+VUL65 <- as.data.frame(Data$VUL65) # vulnerability-at-age for model with h = 0.65
+VUL90 <- as.data.frame(Data$VUL90) # vulnerability-at-age  for model with h = 0.9
+D65 <- Data$D65 # Model estimated parameters by year for model with h = 0.65
+D90 <- Data$D90 # Model estimated parameters by year for model with h = 0.9
+
+VUL75 <- as.data.frame(Data$VUL75) # vulnerability-at-age  for model with h = 0.75
+D75 <- Data$D75 # Model estimated parameters by year for model with h = 0.75
+
+
+# Model assumes a Beverton-Holt SRR with steepness h = 0.65
+h_65 <- 0.65 # model assumed steepness
+R0_65 <- 2.412766 # model estimated equilibrium unfished recruitment [provided]
+M <- 0.3 # model assumed natural mortality rate
+
+# mean unfished spawning biomass per recruit (phi0) over fist 5 years (5 years = mean generation time)
+phi0_5_65<-mean(D65$phi0[1:5])
+
+# B-H a and b. Here we assume that the stock recruitment relationship is estimate using phi0 from the first 5 years
+BHa_65 <- 4*h_65/(phi0_5_65*(1-h_65)) # estimated Beverton-Holt a
+BHb_65 <- 1/R0_65*(BHa_65-1/phi0_5_65) # estimated Beverton-Holt b
+
+#"virgin" unfished SSB0
+SSB0_65<- R0_65/(BHa_65-BHb_65*R0_65)
+
+#############
+# h = 0.9
+#############
+
+# Model assumes a Beverton-Holt SRR with steepness h = 0.9
+h_90 <- 0.9 # model assumed steepness
+R0_90 <- 2.375003 # model estimated equilibrium unfished recruitment [provided]
+M <- 0.3 # model assumed natural mortality rate
+
+# mean unfished spawning biomass per recruit (phi0) over fist 5 years (5 years = mean generation time)
+phi0_5_90<-mean(D90$phi0[1:5])
+
+# B-H a and b. Here we assume that the stock recruitment relationship is estimate using phi0 from the first 5 years
+BHa_90 <- 4*h_90/(phi0_5_90*(1-h_90)) # estimated Beverton-Holt a
+BHb_90 <- 1/R0_90*(BHa_90-1/phi0_5_90) # estimated Beverton-Holt b
+
+#"virgin" unfished SSB0
+SSB0_90<- R0_90/(BHa_90-BHb_90*R0_90)
+
+#############
+# h = 0.75
+#############
+
+# Model assumes a Beverton-Holt SRR with steepness h = 0.75
+h_75 <- 0.75 # model assumed steepness
+R0_75 <- 2.395766 # model estimated equilibrium unfished recruitment [provided]
+M <- 0.3 # model assumed natural mortality rate
+
+# mean unfished spawning biomass per recruit (phi0) over fist 5 years (5 years = mean generation time)
+phi0_5_75<-mean(D75$phi0[1:5])
+
+# B-H a and b. Here we assume that the stock recruitment relationship is estimate using phi0 from the first 5 years
+BHa_75 <- 4*h_75/(phi0_5_75*(1-h_75)) # estimated Beverton-Holt a
+BHb_75 <- 1/R0_75*(BHa_75-1/phi0_5_75) # estimated Beverton-Holt b
+
+#"virgin" unfished SSB0
+SSB0_75<- R0_75/(BHa_75-BHb_75*R0_75)
+
+
+
+calc65_years1_5 <- MSYcalc(M=M,waa=apply(WAA[1:5,],2,mean), mat=apply(MAT[1:5,],2,mean), sel=apply(VUL65[1:5,],2,mean),a=BHa_65, b=BHb_65)
+calc90_years1_5 <- MSYcalc(M=M,waa=apply(WAA[1:5,],2,mean), mat=apply(MAT[1:5,],2,mean), sel=apply(VUL90[1:5,],2,mean),a=BHa_90, b=BHb_90)
+calc75_years1_5 <- MSYcalc(M=M,waa=apply(WAA[1:5,],2,mean), mat=apply(MAT[1:5,],2,mean), sel=apply(VUL75[1:5,],2,mean),a=BHa_75, b=BHb_75)
+
+calc65_last10years <- MSYcalc(M=M,waa=apply(WAA[41:50,],2,mean), mat=apply(MAT[41:50,],2,mean), sel=apply(VUL65[41:50,],2,mean),a=BHa_65, b=BHb_65)
+calc90_last10years <- MSYcalc(M=M,waa=apply(WAA[41:50,],2,mean), mat=apply(MAT[41:50,],2,mean), sel=apply(VUL90[41:50,],2,mean),a=BHa_90, b=BHb_90)
+calc75_last10years <- MSYcalc(M=M,waa=apply(WAA[41:50,],2,mean), mat=apply(MAT[41:50,],2,mean), sel=apply(VUL75[41:50,],2,mean),a=BHa_75, b=BHb_75)
+
+
+
+```
+
+# {.tabset}
+
+
+## Background on Fishery {.tabset}
+
+<b>Arctic sardine (<i>Pseudosardina arctica</i>)</b>
+
+<br>
+![](C:/Users/barretttj/Desktop/Workshop/sardine.png){width=20%}
+<br>
+
+The Arctic sardine is a fictional small pelagic species with a mean generation time of 5 years. It is a schooling fish that forms predictable aggregations for feeding, overwintering, and spawning. Suppose the Arctic sardine stock is divided in multiple management units (MUs) for the purposes of assessment and management (Figure 1):
+<br>
+•	MU1 (West spawning component)
+<br>
+•	MU2 (East offshore spawning component)
+<br>
+•	MU3 (East nearshore spawning component)
+<br>
+Each MU has several spawning areas and there is mixing of Arctic Sardine among the MUs during annual feeding and overwintering migrations. It is assumed that Arctic Sardine exhibit spawning-area fidelity such that during the spawning season, the fish are separated by MU. Acoustic surveys conducted on the spawning grounds therefore represent a measure of spawning stock biomass for the specific MU.
+<br>
+<br>
+
+
+<b> Table 1. Description of Management Units </b>
+<br>
+<table border="1" cellpadding="0" cellspacing="" width="100%">
+  <tr>
+    <th>Management Unit</th>
+    <th>Details</th>
+  </tr>
+  <tr>
+    <td>1 (West spawning component)</td>
+    <td>Largest component by landings (~90% for the stock)<br>
+        3 spawning areas<br>
+        Acoustic surveys in the 3 spawning areas<br>
+        Gear types: purse seine (~80% of catches) and gill net<br>
+        Purse seiners target spawning aggregations and summer feeding aggregations<br> </td>
+  </tr><br>
+  <tr>
+    <td>2 (East offshore spawning component)</td>
+    <td>Gear types: purse seine only<br>
+        Fishing activity is limited due to distance<br>
+        Specific spawning locations are unknown<br></td>
+  </tr><br>
+    <tr>
+    <td>3 (East nearshore spawning component)</td>
+    <td>Gear types: gill net only<br>
+        2 spawning areas<br>
+        Acoustic surveys in the 3 spawning areas<br></td>
+  </tr>
+</table>
+<br>
+<br>
+<br>
+
+
+![](C:/Users/barretttj/Desktop/Workshop/2.png){width=100%}
+
+<B>Figure 1. Map of the Arctic sardine management unit (MU) 1: the focus of this Exercise</B>
+<br>
+<i>Green polygons = known spawning areas and locations of acoustic surveys conducted during the spawning season </i>
+
+## MU1 Figures {.tabset}
+
+
+### Parameters-at-age {.tabset}
+
+```{r}
+M1 <- as.data.frame(cbind(WAA/1000,1:50))
+colnames(M1)<- c(0:11,"Year")
+ggplot(melt(M1,id.vars = "Year"),aes(x=Year,y=value,group=variable,color=variable)) + geom_path() + theme_classic() + labs(x="Year", y="Weight (kg)") + labs(color = "Age")
+
+```
+<br><B>Figure 1.1 Weight-at-age time series</B>
+<br><br>
+
+```{r}
+M2 <- as.data.frame(cbind(MAT,1:50))
+colnames(M2)<- c(0:11,"Year")
+ggplot(melt(M2,id.vars = "Year"),aes(x=Year,y=value,group=variable,color=variable)) + geom_path() + theme_classic() + labs(x="Year", y="Maturity") + labs(color = "Age")
+
+```
+<br><B>Figure 1.2 Maturity-at-age time series</B>
+<br><br>
+
+```{r}
+M65 <- as.data.frame(cbind(VUL65,1:50))
+colnames(M65)<- c(0:11,"Year")
+ggplot(melt(M65,id.vars = "Year"),aes(x=Year,y=value,group=variable,color=variable)) + geom_path() + theme_classic() + labs(x="Year", y="Vulnerability (Model h = 0.65)") + labs(color = "Age")
+
+```
+<br><B>Figure 1.3 Vulnerability-at-age time series for model with <i>h</i> = 0.65</B>
+<br>
+<i> Note: Selectivity is changing over time due to variable catch percentages by fleet (the 2 fleets have different selectivities) </i> 
+<br><br>
+
+```{r}
+M75 <- cbind(VUL75,1:50)
+colnames(M75)<- c(0:11,"Year")
+ggplot(melt(M75,id.vars = "Year"),aes(x=Year,y=value,group=variable,color=variable)) + geom_path() + theme_classic() + labs(x="Year", y="Vulnerability (Model h = 0.75)") + labs(color = "Age")
+
+```
+<br><B>Figure 1.4 Vulnerability-at-age time series for model with <i>h</i> = 0.75</B>
+<br>
+<i> Note: Selectivity is changing over time due to variable catch percentages by fleet (the 2 fleets have different selectivities) </i> 
+<br><br>
+
+```{r}
+M90 <- cbind(VUL90,1:50)
+colnames(M90)<- c(0:11,"Year")
+ggplot(melt(M90,id.vars = "Year"),aes(x=Year,y=value,group=variable,color=variable)) + geom_path() + theme_classic() + labs(x="Year", y="Vulnerability (Model h = 0.90)") + labs(color = "Age")
+
+```
+<br><B>Figure 1.5 Vulnerability-at-age time series for model with <i>h</i> = 0.90</B>
+<br>
+<i> Note: Selectivity is changing over time due to variable catch percentages by fleet (the 2 fleets have different selectivities) </i> 
+<br><br>
+
+### Model estimated variables {.tabset}
+
+
+```{r}
+ggplot(D75,aes(y=Catch,x=Year)) + geom_path() + theme_classic() + labs(x="Year", y="Catch (kt)") + expand_limits(y=0)
+```
+<br><B>Figure 2.1 Historical Catch time series</B>
+<br><br>
+
+```{r, fig.width = 8, fig.height = 6}
+
+p1 <- ggplot(D65[!is.na(D65$Rec),],aes(y=Rec,x=SSB,label=Year)) + geom_point() + theme_classic() + labs(x="SSB (kt)", y="Recruitment (10^9)") + expand_limits(y=13) + expand_limits(x=0) + ggtitle("h=0.65") + geom_function(fun=function(x) BHa_65*x/(1+BHb_65*x),color="red") 
+
+p2 <- ggplot(D90[!is.na(D90$Rec),],aes(y=Rec,x=SSB,label=Year)) + geom_point() + theme_classic() + labs(x="SSB (kt)", y="Recruitment (10^9)") + expand_limits(y=13) + expand_limits(x=0) + ggtitle("h=0.90") + geom_function(fun=function(x) BHa_90*x/(1+BHb_90*x),color="blue") 
+
+p3 <- ggplot(D75[!is.na(D75$Rec),],aes(y=Rec,x=SSB,label=Year)) + geom_point() + theme_classic() + labs(x="SSB (kt)", y="Recruitment (10^9)") + expand_limits(y=13) + expand_limits(x=0) + ggtitle("h=0.75") + geom_function(fun=function(x) BHa_75*x/(1+BHb_75*x)) 
+
+p4 <- ggplot(D75[!is.na(D75$Rec),],aes(y=Rec,x=SSB,label=Year)) + theme_classic() + labs(x="SSB (kt)", y="Recruitment (10^9)") + expand_limits(y=13) + expand_limits(x=0) + ggtitle("h=0.65 red, h=0.75 black, h=0.90 blue") + 
+  geom_function(fun=function(x) BHa_75*x/(1+BHb_75*x)) +
+  geom_function(fun=function(x) BHa_65*x/(1+BHb_65*x),color="red") +
+  geom_function(fun=function(x) BHa_90*x/(1+BHb_90*x),color="blue") 
+
+plot_grid(p1,p2,p3,p4)
+```
+<br><B>Figure 2.2 Stock recruitment pairs and model estimated BH stock recruitment relationships for <i>h</i> = 0.65, 0.75, 0.90</B>
+<br><br>
+
+```{r}
+ggplot(D75,aes(y=SSB,x=Year)) + geom_path() + theme_classic() + labs(x="Year", y="SSB (kt)") + expand_limits(y=0) + ggtitle("h=0.65 red, h=0.75 black, h=0.90 blue") +
+  geom_path(data=D65,mapping=aes(y=SSB,x=Year),color="red") +
+  geom_path(data=D90,mapping=aes(y=SSB,x=Year),color="blue") 
+```
+<br><B>Figure 2.3 Historical SSB time series by model</B>
+<br><br>
+
+```{r}
+ggplot(D75,aes(y=f,x=Year)) + geom_path() + theme_classic() + labs(x="Year", y="F") + expand_limits(y=0) + ggtitle("h=0.65 red, h=0.75 black, h=0.90 blue") +
+  geom_path(data=D65,mapping=aes(y=f,x=Year),color="red") +
+  geom_path(data=D90,mapping=aes(y=f,x=Year),color="blue") 
+```
+<br><B>Figure 2.4 Historical <i>F</i> time series</B>
+<br><br>
+
+```{r}
+ggplot(D75,aes(y=SSB,x=Year)) + geom_path() + theme_classic() + labs(x="Year", y="SSB (kt)") + expand_limits(y=0) + ggtitle("h=0.65 red, h=0.75 black, h=0.90 blue") +
+  geom_path(data=D65,mapping=aes(y=SSB,x=Year),color="red") +
+  geom_path(data=D90,mapping=aes(y=SSB,x=Year),color="blue") +
+
+  geom_path(data=D75, mapping=aes(y=dSSB0a,x=Year),linetype=3) +
+  geom_path(data=D65, mapping=aes(y=dSSB0a,x=Year),color="red",linetype=3) +
+  geom_path(data=D90, mapping=aes(y=dSSB0a,x=Year),color="blue",linetype=3) +
+  
+  geom_hline(yintercept=SSB0_75,linetype="dashed") +
+  geom_hline(yintercept=SSB0_65,linetype="dashed",color="red") +
+  geom_hline(yintercept=SSB0_90,linetype="dashed",color="blue") 
+
+```
+<br><B>Figure 2.5 Historical SSB time series with dynamic SSB<sub>0</sub> and virgin SSB<sub>0</sub></B>
+<br>
+<i> SSB = solid line </i> 
+<br> 
+<i> dynamic SSB<sub>0</sub> = dotted line (assuming annual rec deviations, annual weight-at-age, annual maturity-at-age) </i> 
+<br> 
+<i> virgin SSB<sub>0</sub> = dashed line (assuming mean weight-at-age and maturity-at-age from first 5 years) </i> 
+<br><br>
+
+```{r}
+ggplot(D75,aes(y=SSB,x=Year)) + geom_path() + theme_classic() + labs(x="Year", y="SSB (kt)") + expand_limits(y=0) + ggtitle("h=0.65 red, h=0.75 black, h=0.90 blue") +
+  geom_path(data=D65,mapping=aes(y=SSB,x=Year),color="red") +
+  geom_path(data=D90,mapping=aes(y=SSB,x=Year),color="blue") +
+  geom_hline(yintercept=calc75_last10years$SSBmsy,linetype="dashed") +
+  geom_hline(yintercept=calc65_last10years$SSBmsy,linetype="dashed",color="red") +
+  geom_hline(yintercept=calc90_last10years$SSBmsy,linetype="dashed",color="blue") 
+
+```
+<br><B>Figure 2.6 Historical SSB time series with SSB<sub>MSY</sub> estimated using weight-at-age, maturity-at-age, and vulnerability-at-age from last 10 years</B>
+<br>
+<i> Note: Dashed lines are SSB<sub>MSY</sub> </i> 
+<br>
+<br>
+
+
+
+```{r}
+D <- read.csv("C:/Users/barretttj/Desktop/LRP_workshop/Exercise 2/ex2_data.csv")
+ D$MA_Index <- NA
+  D$MA_Index[D$Year%in%28:50] <- apply(cbind(D$Acoustic_Index[D$Year%in%28:50],
+                                             D$Acoustic_Index[D$Year%in%27:49],
+                                             D$Acoustic_Index[D$Year%in%26:48]),1,mean)
+
+  #Add loess smoother (example span = 0.5)
+  lsmooth <- loess(Acoustic_Index ~ Year,data=D,span=0.5)  
+  D$lowess_Index <- NA
+  D$lowess_Index[D$Year%in%26:50] <- predict(lsmooth)
+
+ggplot(D[!is.na(D$Acoustic_Index),]) + geom_path(mapping=aes(y=Acoustic_Index,x=Year),size=1) + theme_classic() + labs(x="Year", y="Acoustic SSB (kt)") + expand_limits(y=0,x=50) +
+  geom_path(data=D[!is.na(D$MA_Index),],mapping=aes(y=MA_Index,x=Year),color="red") +
+  scale_x_continuous(limits = c(0,50), expand = c(0, 0)) +
+  geom_path(data=D[!is.na(D$lowess_Index),],mapping=aes(y=lowess_Index,x=Year),color="blue") 
+```
+<br><B>Figure 2.7 Acoustic Index of SSB (years 26-50)</B>
+<br>
+<i>Notes:</i><br>
+<i> Index is a relative index of SSB </i><br>
+<i> Black line = Annual index </i><br>
+<i> Red line = 3 year moving average </i><br>
+<i> Blue line = loess smoother with span = 0.5 </i>
+<br>
+
+
+

@@ -1,0 +1,184 @@
+---
+title: "Exercise 2"
+---
+
+```{r setup, include=F}
+  knitr::opts_chunk$set(collapse = TRUE, echo = FALSE, message = FALSE,warning = FALSE,
+  fig.width = 4, fig.height = 3, comment = "#>")
+  library(kableExtra)
+  library(ggplot2)
+```
+
+# {.tabset}
+
+## Background on Fishery {.tabset}
+
+<b>Arctic sardine (<i>Pseudosardina arctica</i>)</b>
+
+<br>
+![](C:/Users/barretttj/Desktop/Workshop/sardine.png){width=20%}
+<br>
+
+The Arctic sardine is a fictional small pelagic species with a mean generation time of 5 years. It is a schooling fish that forms predictable aggregations for feeding, overwintering, and spawning. Suppose the Arctic sardine stock is divided in multiple management units (MUs) for the purposes of assessment and management (Figure 1):
+<br>
+•	MU1 (West spawning component)
+<br>
+•	MU2 (East offshore spawning component)
+<br>
+•	MU3 (East nearshore spawning component)
+<br>
+Each MU has several spawning areas and there is mixing of Arctic Sardine among the MUs during annual feeding and overwintering migrations. It is assumed that Arctic Sardine exhibit spawning-area fidelity such that during the spawning season, the fish are separated by MU. Acoustic surveys conducted on the spawning grounds therefore represent a measure of spawning stock biomass for the specific MU.
+<br>
+<br>
+
+
+<b> Table 1. Description of Management Units </b>
+<br>
+<table border="1" cellpadding="0" cellspacing="" width="100%">
+  <tr>
+    <th>Management Unit</th>
+    <th>Details</th>
+  </tr>
+  <tr>
+    <td>1 (West spawning component)</td>
+    <td>Largest component by landings (~90% for the stock)<br>
+        3 spawning areas<br>
+        Acoustic surveys in the 3 spawning areas<br>
+        Gear types: purse seine (~80% of catches) and gill net<br>
+        Purse seiners target spawning aggregations and summer feeding aggregations<br> </td>
+  </tr><br>
+  <tr>
+    <td>2 (East offshore spawning component)</td>
+    <td>Gear types: purse seine only<br>
+        Fishing activity is limited due to distance<br>
+        Specific spawning locations are unknown<br></td>
+  </tr><br>
+    <tr>
+    <td>3 (East nearshore spawning component)</td>
+    <td>Gear types: gill net only<br>
+        2 spawning areas<br>
+        Acoustic surveys in the 3 spawning areas<br></td>
+  </tr>
+</table>
+<br>
+<br>
+<br>
+
+
+![](C:/Users/barretttj/Desktop/Workshop/2.png){width=100%}
+
+<B>Figure 1. Map of the Arctic sardine management unit (MU) 1: the focus of this Exercise</B>
+<br>
+<i>Green polygons = known spawning areas and locations of acoustic surveys conducted during the spawning season </i>
+
+## MU1 Figures {.tabset}
+
+### Parameters-at-age {.tabset}
+
+For the purpose of this exercise, the system is assumed to be at equilibrium, (vital rates are assumed to be stationary). The variability in annual estimates of weight-at-age, maturity-at-age, and selectivity-at-age is assumed to be random variation about the mean. The time series means are plotted below:
+
+```{r}
+AA <- read.csv("ex2_at_age_data.csv")
+D <- read.csv("ex2_data.csv")
+ggplot(AA,aes(y=w_age/1000,x=age)) + geom_path() + theme_classic() + labs(x="Age", y="Weight (kg)") + expand_limits(y=0) + expand_limits(x=0) 
+```
+<br><B>Figure 1.1 Mean weight-at-age</B>
+<br><br>
+
+
+```{r}
+ggplot(AA,aes(y=m_age,x=age)) + geom_path() + theme_classic() + labs(x="Age", y="Maturity") + expand_limits(y=0) + expand_limits(x=0) 
+```
+<br><B>Figure 1.2 Mean maturity-at-age</B>
+<br><br>
+
+```{r}
+ggplot(AA,aes(y=v_age,x=age)) + geom_path() + theme_classic() + labs(x="Age", y="Vulnerability") + expand_limits(y=0) + expand_limits(x=0) 
+```
+<br><B>Figure 1.3 Mean vulnerability-at-age</B>
+<br><br>
+
+### Model estimated variables {.tabset}
+
+```{r}
+ggplot(D[!is.na(D$Rec),],aes(y=Rec,x=SSB,label=Year)) + geom_point() + theme_classic() + labs(x="SSB (kt)", y="Recruitment (10^9)") + expand_limits(y=0) + expand_limits(x=0) +
+  geom_text(mapping=aes(y=Rec,x=SSB,label=Year),nudge_y = 0.5,size=2) 
+```
+<br><B>Figure 2.1 Estimated stock recruitment pairs</B>
+<br><i>Note: Data labels are the years</i>
+<br><br>
+
+```{r}
+ggplot() + geom_point(D[!is.na(D$Rec),],mapping=aes(y=Rec,x=SSB)) + theme_classic() + labs(x="SSB (kt)", y="Recruitment (10^9)") + expand_limits(y=0) + expand_limits(x=0) +
+  geom_function(fun=function(x) 0.04301038*x/(1+0.01645661*x))
+```
+<br><B>Figure 2.2 Estimated stock recruitment pairs with model estimated fit</B>
+<br>
+<i>Note: Model estimated Beverton-Holt stock recruitment relationship, a = 0.04301038; b = 0.01645661, estimated from assumed h = 0.75 </i>
+<br><br>
+
+```{r}
+ggplot(D[!is.na(D$Rec),],aes(y=Rec,x=Year)) + geom_path() + theme_classic() + labs(x="Year", y="Recruitment (10^9)") + expand_limits(y=0) + expand_limits(x=50)
+```
+<br><B>Figure 2.3 Historical recruitment time series</B>
+<br><br>
+
+```{r}
+ggplot(D,aes(y=SSB,x=Year)) + geom_path() +theme_classic() + labs(x="Year", y="SSB (kt)") + expand_limits(y=0)
+```
+<br><B>Figure 2.4 Historical SSB time series</B>
+<br><br>
+
+```{r}
+ggplot(D,aes(y=Catch,x=Year)) + geom_path() + theme_classic() + labs(x="Year", y="Catch (kt)") + expand_limits(y=0)
+```
+<br><B>Figure 2.5 Historical catch time series</B>
+<br><br>
+
+```{r}
+ggplot(D,aes(y=f,x=Year)) + geom_path() + theme_classic() + labs(x="Year", y="F") + expand_limits(y=0) 
+```
+<br><B>Figure 2.6 Historical <i>F</i> time series</B>
+<br><br>
+
+```{r}
+#SSB0 = 668.4245; SSBmsy = 201.5436
+ggplot(D) + 
+  geom_path(mapping=aes(y=SSB,x=Year)) +
+  theme_classic() + labs(x="Year", y="SSB (kt)") + expand_limits(y=0) +
+  geom_hline(yintercept=668.4245, linetype="dashed", color = "blue") + 
+  geom_hline(yintercept=201.5436, color = "green") 
+```
+<br><B>Figure 2.7 Historical SSB time series</B>
+<br>
+<i>Notes:</i><br>
+<i> black line = Model estimated SSB</i><br>
+<i> blue line = Equilibrium unfished SSB<sub>0</sub>  </i><br>
+<i> green line = Equilibrium SSB<sub>MSY</sub> </i>
+<br><br>
+
+```{r}
+  D$MA_Index <- NA
+  D$MA_Index[D$Year%in%28:50] <- apply(cbind(D$Acoustic_Index[D$Year%in%28:50],
+                                             D$Acoustic_Index[D$Year%in%27:49],
+                                             D$Acoustic_Index[D$Year%in%26:48]),1,mean)
+
+  #Add loess smoother (example span = 0.5)
+  lsmooth <- loess(Acoustic_Index ~ Year,data=D,span=0.5)  
+  D$lowess_Index <- NA
+  D$lowess_Index[D$Year%in%26:50] <- predict(lsmooth)
+
+ggplot(D[!is.na(D$Acoustic_Index),]) + geom_path(mapping=aes(y=Acoustic_Index,x=Year),size=1) + theme_classic() + labs(x="Year", y="Acoustic SSB (kt)") + expand_limits(y=0,x=50) +
+  geom_path(data=D[!is.na(D$MA_Index),],mapping=aes(y=MA_Index,x=Year),color="red") +
+  scale_x_continuous(limits = c(0,50), expand = c(0, 0)) +
+  geom_path(data=D[!is.na(D$lowess_Index),],mapping=aes(y=lowess_Index,x=Year),color="blue") 
+```
+<br><B>Figure 2.8 Acoustic Index of SSB (years 26-50)</B>
+<br>
+<i>Notes:</i><br>
+<i> Index is a relative index of SSB </i><br>
+<i> Black line = Annual index </i><br>
+<i> Red line = 3 year moving average </i><br>
+<i> Blue line = loess smoother with span = 0.5 </i>
+<br>
+
