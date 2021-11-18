@@ -1,7 +1,7 @@
 rm(list=ls())
 library(ggplot2)
-L <- read.csv("Exercise 1/ex1_landings.csv")
-D <- read.csv("Exercise 1/ex1_indices.csv")
+L <- read.csv(paste0(getwd(),"/Exercise 1/ex1_landings.csv"))
+D <- read.csv(paste0(getwd(),"/Exercise 1/ex1_indices.csv"))
 
 head(L)
 head(D)

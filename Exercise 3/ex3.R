@@ -1,11 +1,11 @@
 rm(list=ls())
 library(ggplot2)
 library(reshape2)
-source("functions.R") # contains functions "survivorship_F" and "MSYcalc"
+source(paste0(getwd(),"/functions.R")) # contains functions "survivorship_F" and "MSYcalc"
 
 # Read in data
 
-Data <- readRDS("Exercise 3/ex3_data.rda")
+Data <- readRDS(paste0(getwd(),"/Exercise 3/ex3_data.rda"))
 
 WAA <- Data[[1]] # weight-at-age years 1-50
 MAT <- Data[[2]] # maturity-at-age years 1-50
