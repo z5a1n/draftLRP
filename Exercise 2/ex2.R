@@ -1,9 +1,12 @@
+########################################################################################################################
+# Exercise 2: SSB0 and SSBmsy calculations, plots
+########################################################################################################################
+
 rm(list=ls())
 library(ggplot2)
 source(paste0(getwd(),"/functions.R")) # contains functions "survivorship_F" and "MSYcalc"
 
 # Read in the two data sets
-
 AA <- read.csv(paste0(getwd(),"/Exercise 2/ex2_at_age_data.csv"))
 D <- read.csv(paste0(getwd(),"/Exercise 2/ex2_data.csv"))
 
@@ -69,10 +72,10 @@ ggplot(D,aes(y=SSB,x=Year)) + geom_path() +theme_classic() + labs(x="Year", y="S
 #Historical Catch
 ggplot(D,aes(y=Catch,x=Year)) + geom_path() + theme_classic() + labs(x="Year", y="Catch (kt)") + expand_limits(y=0)
 
-#F
+#Historical F
 ggplot(D,aes(y=f,x=Year)) + geom_path() + theme_classic() + labs(x="Year", y="F") + expand_limits(y=0) 
 
-#Equilibrium SSB0 (blue), Equilibrium SSBmsy (green)
+#Plot Equilibrium SSB0 (blue), Equilibrium SSBmsy (green)
 ggplot(D) + 
   geom_path(mapping=aes(y=SSB,x=Year)) +
   theme_classic() + labs(x="Year", y="SSB (kt)") + expand_limits(y=0) +
@@ -81,7 +84,7 @@ ggplot(D) +
 
 
 
-#Acoustic index years 25-50
+#Plot Acoustic index years 25-50
   #Add x yr moving average (example 3 years)
   D$MA_Index <- NA
   D$MA_Index[D$Year%in%28:50] <- apply(cbind(D$Acoustic_Index[D$Year%in%28:50],
@@ -90,10 +93,35 @@ ggplot(D) +
 
   #Add loess smoother (example span = 0.5)
   lsmooth <- loess(Acoustic_Index ~ Year,data=D,span=0.5)  
-  D$lowess_Index <- NA
-  D$lowess_Index[D$Year%in%26:50] <- predict(lsmooth)
+  D$loess_Index <- NA
+  D$loess_Index[D$Year%in%26:50] <- predict(lsmooth)
 
-ggplot(D[!is.na(D$Acoustic_Index),]) + geom_path(mapping=aes(y=Acoustic_Index,x=Year),size=1.2) + theme_classic() + labs(x="Year", y="Acoustic SSB (kt)") + expand_limits(y=0,x=0) +
+ggplot(D[!is.na(D$Acoustic_Index),]) + geom_path(mapping=aes(y=Acoustic_Index,x=Year),size=1) + theme_classic() + labs(x="Year", y="Acoustic SSB (kt)") + expand_limits(y=0,x=0) +
   geom_path(data=D[!is.na(D$MA_Index),],mapping=aes(y=MA_Index,x=Year),color="red") +
-  geom_path(data=D[!is.na(D$lowess_Index),],mapping=aes(y=lowess_Index,x=Year),color="blue") 
+  geom_path(data=D[!is.na(D$loess_Index),],mapping=aes(y=loess_Index,x=Year),color="blue") 
 
+
+
+#Plot stock status indicator (example: suppose LRP = 30% SSB0)
+ggplot(D) + 
+  geom_path(mapping=aes(y=SSB/(0.3*SSB0),x=Year),color="blue") +
+  theme_classic() + labs(x="Year", y="Ratio SSB/LRP") + expand_limits(y=0) +
+  geom_hline(yintercept=1, linetype="dashed") 
+
+
+#Plot variability in stock status indicator in year 50 (assume ratio of SSB/SSB0 is normally distributed with CV 20% in each year, example: suppose LRP = 30% SSB0)
+myindicator <- D$SSB
+mylrp <- 0.3*SSB0
+
+  D$ratio_mean <- myindicator/(mylrp)
+  D$ratio_p25 <- myindicator/(mylrp) - 0.675*0.2*myindicator/(mylrp) #25th percentile, Z score = -0.675
+  D$ratio_p75 <- myindicator/(mylrp) + 0.675*0.2*myindicator/(mylrp) #75th percentile, Z score = 0.675
+  D$ratio_p025 <- myindicator/(mylrp) - 1.96*0.2*myindicator/(mylrp) #2.5th percentile, Z score = -1.96
+  D$ratio_p095 <- myindicator/(mylrp) + 1.96*0.2*myindicator/(mylrp) #97.5th percentile, Z score = 1.96
+  
+ggplot(D) + 
+  geom_ribbon(aes(x=Year,ymin=ratio_p025,ymax=ratio_p095),fill='#e6e6e6') +
+  geom_ribbon(aes(x=Year,ymin=ratio_p25,ymax=ratio_p75),fill='#ababab') +
+  geom_path(mapping=aes(y=ratio_mean,x=Year),color="blue") +
+  theme_classic() + labs(x="Year", y="Ratio Indicator/LRP") + expand_limits(y=0) +
+  geom_hline(yintercept=1, linetype="dashed") 

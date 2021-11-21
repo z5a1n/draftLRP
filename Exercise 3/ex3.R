@@ -1,6 +1,9 @@
+########################################################################################################################
+# Exercise 3: SSB0 and SSBmsy calculations, plots
+########################################################################################################################
+
 rm(list=ls())
 library(ggplot2)
-library(reshape2)
 source(paste0(getwd(),"/functions.R")) # contains functions "survivorship_F" and "MSYcalc"
 
 # Read in data
@@ -12,6 +15,10 @@ MAT <- Data[[2]] # maturity-at-age years 1-50
 VUL <- Data[[3]] # vulnerability-at-age years 1-50
 
 D <- Data[[4]] # Model estimated parameters by year 
+
+#Calculate Surplus Production P(t) = B(t+1) - B(t) + CATCH(t)
+D$P<-NA
+D$P[1:49] <- D$B[2:50]-D$B[1:49]+D$Catch[1:49]
 
 ########################################################################################################################
 # Move h/R0/phi0 parameterization of B-H SRR to a/b parameterization and calculate "unfished equilibrium SSB"
@@ -25,7 +32,7 @@ M <- 0.3 # model assumed natural mortality rate
 # mean unfished spawning biomass per recruit (phi0) over fist 5 years (5 years = mean generation time)
 phi0_5<-mean(D$phi0[1:5])
 
-# B-H a and b. Here we assume that the stock recruitment relationship is estimate using phi0 from the first 5 years
+# B-H a and b. Here we assume that the stock recruitment relationship is estimated using phi0 from the first 5 years
 BHa <- 4*h/(phi0_5*(1-h)) # estimated Beverton-Holt a
 BHb <- 1/R0*(BHa-1/phi0_5) # estimated Beverton-Holt b
 
@@ -34,18 +41,22 @@ SSB0 <- R0/(BHa-BHb*R0)
 
 ########################################################################################################################
 # Calculate SSBmsy using WAA, MAT, VUL from a specific time period using the "MSYcalc" function
-# Note: examples below are for the first 5 years and last 10 years of the historical time series [Note: 50 years of data]
+# Note: examples below are for the first 5 years and the last 20 years (years 31-50) of the historical time series 
 ########################################################################################################################
 
 # MSYcalc: function from source.R returns a list with Fmsy, msy, SSBmsy from M=M, waa=weight-at-age, mat=maturity-at-age, sel=vulnerability-at-age, Beverton-Holt a and b
 # MSYcalc <- function(M,waa,mat,sel,a,b)
 
 calc_years1_5 <- MSYcalc(M=0.3,waa=apply(WAA[1:5,],2,mean), mat=apply(MAT[1:5,],2,mean), sel=apply(VUL[1:5,],2,mean),a=BHa, b=BHb)
-calc_last10years <- MSYcalc(M=0.3,waa=apply(WAA[41:50,],2,mean), mat=apply(MAT[41:50,],2,mean), sel=apply(VUL[41:50,],2,mean),a=BHa, b=BHb)
+calc_after_rec_change <- MSYcalc(M=0.3,waa=apply(WAA[32:50,],2,mean), mat=apply(MAT[32:50,],2,mean), sel=apply(VUL[32:50,],2,mean),a=BHa, b=BHb)
 
 calc_years1_5$Fmsy
 calc_years1_5$SSBmsy
 calc_years1_5$msy
+
+# Ratio of SSBmsy to SSB0 using average biological parameters over the first 5 years
+
+SSBmsy_SSB0 <- calc_years1_5$SSBmsy / SSB0
 
 ########################################################################################################################
 # Plots from data frame D
@@ -58,7 +69,9 @@ ggplot(D[!is.na(D$Rec),],aes(y=Rec,x=SSB,label=Year)) + geom_point() + theme_cla
 ggplot() + geom_point(D[!is.na(D$Rec),],mapping=aes(y=Rec,x=SSB)) + theme_classic() + labs(x="SSB (kt)", y="Recruitment (10^9)") + expand_limits(y=0) + expand_limits(x=0) + geom_function(fun=function(x) BHa*x/(1+BHb*x)) 
 
 #Historical Recruitment
-ggplot(D[!is.na(D$Rec),],aes(y=Rec,x=Year)) + geom_path() + theme_classic() + labs(x="Year", y="Recruitment (10^9)") + expand_limits(y=0,x=50) 
+ggplot(D[!is.na(D$Rec),],aes(y=Rec,x=Year)) + geom_path() + theme_classic() + labs(x="Year", y="Recruitment (10^9)") + expand_limits(y=0,x=50) +
+  geom_segment(aes(x = x1, y = y, xend = x2, yend = y, colour = "segment"), data = data.frame(x1=0,x2=31,y=exp(mean(log(D$Rec[1:31])))))+
+  geom_segment(aes(x = x1, y = y, xend = x2, yend = y, colour = "segment"), data = data.frame(x1=32,x2=47,y=exp(mean(log(D$Rec[32:47])))))
 
 #Historical SSB 
 ggplot(D,aes(y=SSB,x=Year)) + geom_path() + theme_classic() + labs(x="Year", y="SSB (kt)") + expand_limits(y=0)
@@ -66,41 +79,37 @@ ggplot(D,aes(y=SSB,x=Year)) + geom_path() + theme_classic() + labs(x="Year", y="
 #Historical Catch
 ggplot(D,aes(y=Catch,x=Year)) + geom_path() + theme_classic() + labs(x="Year", y="Catch (kt)") + expand_limits(y=0)
 
-#F
+#Historical F
 ggplot(D,aes(y=f,x=Year)) + geom_path() + theme_classic() + labs(x="Year", y="F") + expand_limits(y=0) 
 
-#Plot dynamic SSB0
-ggplot(D) + 
-  geom_path(mapping=aes(y=SSB,x=Year)) +
-  geom_path(mapping=aes(y=dSSB0b,x=Year),color="blue") +
-  geom_path(mapping=aes(y=dSSB0a,x=Year),color="red") +
-  geom_path(mapping=aes(y=dSSB0g,x=Year),color="purple") +
-  geom_path(mapping=aes(y=dSSB0m,x=Year),color="grey") +
-  theme_classic() + labs(x="Year", y="SSB (kt)") + expand_limits(y=0) +
-  geom_hline(yintercept=SSB0, linetype="dashed", color = "green") 
+#Surplus Production
+ggplot(D[!is.na(D$P),],aes(y=P,x=Year)) + geom_path() + theme_classic() + labs(x="Year", y="Surplus Production (kt)") + expand_limits(y=0,x=50) +   geom_hline(yintercept=0)   
 
-#Plot SSBmsy with WAA,MAT,VUL from different time periods
+#Plot Historical SSB with some metrics that could be used for candidate LRPs
 ggplot(D) + 
   geom_path(mapping=aes(y=SSB,x=Year)) +
   theme_classic() + labs(x="Year", y="SSB (kt)") + expand_limits(y=0) +
-  geom_hline(yintercept=calc_years1_5$SSBmsy, linetype="dashed", color = "red") +
-  geom_hline(yintercept=calc_last10years$SSBmsy, linetype="dashed", color = "blue") 
+  geom_hline(yintercept=SSB0, linetype="dashed", color = "green") +
+  geom_path(mapping=aes(y=dSSB0a,x=Year),color="red") +                                #full dynamic SSB0
+  geom_path(mapping=aes(y=dSSB0g,x=Year),color="purple") +                             #dynamic SSB0, mean growth first 5 historical years
+  geom_path(mapping=aes(y=SSBmsy_SSB0*dSSB0a,x=Year),color="red",linetype=2) +         #full dynamic SSBmsy
+  geom_path(mapping=aes(y=SSBmsy_SSB0*dSSB0g,x=Year),color="purple",linetype=2)+       #dynamic SSBmsy, mean growth first 5 historical years
+  geom_hline(yintercept=calc_after_rec_change$SSBmsy, linetype="dashed", color = "blue")    #equilibrium SSBmsy estimated using data over last 10 years
 
 
-  
-# Plot acoustic index years 25-50
-#Add x yr moving average (example 3 years)
-D$MA_Index <- NA
-D$MA_Index[D$Year%in%28:50] <- apply(cbind(D$Acoustic_Index[D$Year%in%28:50],
+
+#Plot Acoustic index years 25-50
+  #Add x yr moving average (example 3 years)
+  D$MA_Index <- NA
+  D$MA_Index[D$Year%in%28:50] <- apply(cbind(D$Acoustic_Index[D$Year%in%28:50],
                                            D$Acoustic_Index[D$Year%in%27:49],
                                            D$Acoustic_Index[D$Year%in%26:48]),1,mean)
 
-#Add loess smoother (example span = 0.5)
-lsmooth <- loess(Acoustic_Index ~ Year,data=D,span=0.5)  
-D$lowess_Index <- NA
-D$lowess_Index[D$Year%in%26:50] <- predict(lsmooth)
+  #Add loess smoother (example span = 0.5)
+  lsmooth <- loess(Acoustic_Index ~ Year,data=D,span=0.5)  
+  D$loess_Index <- NA
+  D$loess_Index[D$Year%in%26:50] <- predict(lsmooth)
 
 ggplot(D[!is.na(D$Acoustic_Index),]) + geom_path(mapping=aes(y=Acoustic_Index,x=Year),size=1) + theme_classic() + labs(x="Year", y="Acoustic SSB (kt)") + expand_limits(y=0,x=0) +
   geom_path(data=D[!is.na(D$MA_Index),],mapping=aes(y=MA_Index,x=Year),color="red") +
-  geom_path(data=D[!is.na(D$lowess_Index),],mapping=aes(y=lowess_Index,x=Year),color="blue") 
-
+  geom_path(data=D[!is.na(D$loess_Index),],mapping=aes(y=loess_Index,x=Year),color="blue") 

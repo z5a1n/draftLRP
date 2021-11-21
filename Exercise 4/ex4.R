@@ -79,7 +79,7 @@ BHb_75 <- 1/R0_75*(BHa_75-1/phi0_5_75) # estimated Beverton-Holt b
 SSB0_75<- R0_75/(BHa_75-BHb_75*R0_75)
 
 ########################################################################################################################
-# Calculate SSBmsy using WAA, MAT, VUL from first 5 years and last 10 years [Note: 53 years of data]
+# Calculate SSBmsy using WAA, MAT, VUL from first 5 years and all years [Note: 50 years of data]
 # Note: MSYcalc function can be used to estimate MSY reference points for various time periods. 
 ########################################################################################################################
 
@@ -90,9 +90,9 @@ calc65_years1_5 <- MSYcalc(M=M,waa=apply(WAA[1:5,],2,mean), mat=apply(MAT[1:5,],
 calc90_years1_5 <- MSYcalc(M=M,waa=apply(WAA[1:5,],2,mean), mat=apply(MAT[1:5,],2,mean), sel=apply(VUL90[1:5,],2,mean),a=BHa_90, b=BHb_90)
 calc75_years1_5 <- MSYcalc(M=M,waa=apply(WAA[1:5,],2,mean), mat=apply(MAT[1:5,],2,mean), sel=apply(VUL75[1:5,],2,mean),a=BHa_75, b=BHb_75)
 
-calc65_last10years <- MSYcalc(M=M,waa=apply(WAA[41:50,],2,mean), mat=apply(MAT[41:50,],2,mean), sel=apply(VUL65[41:50,],2,mean),a=BHa_65, b=BHb_65)
-calc90_last10years <- MSYcalc(M=M,waa=apply(WAA[41:50,],2,mean), mat=apply(MAT[41:50,],2,mean), sel=apply(VUL90[41:50,],2,mean),a=BHa_90, b=BHb_90)
-calc75_last10years <- MSYcalc(M=M,waa=apply(WAA[41:50,],2,mean), mat=apply(MAT[41:50,],2,mean), sel=apply(VUL75[41:50,],2,mean),a=BHa_75, b=BHb_75)
+calc65_allyears <- MSYcalc(M=M,waa=apply(WAA[1:50,],2,mean), mat=apply(MAT[1:50,],2,mean), sel=apply(VUL65[1:50,],2,mean),a=BHa_65, b=BHb_65)
+calc90_allyears <- MSYcalc(M=M,waa=apply(WAA[1:50,],2,mean), mat=apply(MAT[1:50,],2,mean), sel=apply(VUL90[1:50,],2,mean),a=BHa_90, b=BHb_90)
+calc75_allyears <- MSYcalc(M=M,waa=apply(WAA[1:50,],2,mean), mat=apply(MAT[1:50,],2,mean), sel=apply(VUL75[1:50,],2,mean),a=BHa_75, b=BHb_75)
 
 ########################################################################################################################
 # Plots 
@@ -138,34 +138,10 @@ ggplot(D75,aes(y=SSB,x=Year)) + geom_path() + theme_classic() + labs(x="Year", y
   geom_hline(yintercept=SSB0_65,linetype="dashed",color="red") +
   geom_hline(yintercept=SSB0_90,linetype="dashed",color="blue") 
 
-#Plot SSBmsy (assuming WAA, MAT, VUL from first 5 years)
+#Plot SSBmsy (assuming WAA, MAT, VUL from all years)
 ggplot(D75,aes(y=SSB,x=Year)) + geom_path() + theme_classic() + labs(x="Year", y="SSB (kt)") + expand_limits(y=0) + ggtitle("h=0.65 red, h=0.75 black, h=0.90 blue") +
   geom_path(data=D65,mapping=aes(y=SSB,x=Year),color="red") +
   geom_path(data=D90,mapping=aes(y=SSB,x=Year),color="blue") +
-  geom_hline(yintercept=calc75_years1_5$SSBmsy,linetype="dashed") +
-  geom_hline(yintercept=calc65_years1_5$SSBmsy,linetype="dashed",color="red") +
-  geom_hline(yintercept=calc90_years1_5$SSBmsy,linetype="dashed",color="blue") 
-  
-#Plot SSBmsy (assuming WAA, MAT, VUL from last 10 years)
-ggplot(D75,aes(y=SSB,x=Year)) + geom_path() + theme_classic() + labs(x="Year", y="SSB (kt)") + expand_limits(y=0) + ggtitle("h=0.65 red, h=0.75 black, h=0.90 blue") +
-  geom_path(data=D65,mapping=aes(y=SSB,x=Year),color="red") +
-  geom_path(data=D90,mapping=aes(y=SSB,x=Year),color="blue") +
-  geom_hline(yintercept=calc75_last10years$SSBmsy,linetype="dashed") +
-  geom_hline(yintercept=calc65_last10years$SSBmsy,linetype="dashed",color="red") +
-  geom_hline(yintercept=calc90_last10years$SSBmsy,linetype="dashed",color="blue") 
-
-# Plot acoustic index years 25-50
-#Add x yr moving average (example 3 years)
-D75$MA_Index <- NA
-D75$MA_Index[D75$Year%in%28:50] <- apply(cbind(D75$Acoustic_Index[D75$Year%in%28:50],
-                                           D75$Acoustic_Index[D75$Year%in%27:49],
-                                           D75$Acoustic_Index[D75$Year%in%26:48]),1,mean)
-
-#Add loess smoother (example span = 0.5)
-lsmooth <- loess(Acoustic_Index ~ Year,data=D75,span=0.5)  
-D75$lowess_Index <- NA
-D75$lowess_Index[D75$Year%in%26:50] <- predict(lsmooth)
-
-ggplot(D75[!is.na(D75$Acoustic_Index),]) + geom_path(mapping=aes(y=Acoustic_Index,x=Year),size=1) + theme_classic() + labs(x="Year", y="Acoustic SSB (kt)") + expand_limits(y=0,x=0) +
-  geom_path(data=D75[!is.na(D75$MA_Index),],mapping=aes(y=MA_Index,x=Year),color="red") +
-  geom_path(data=D75[!is.na(D75$lowess_Index),],mapping=aes(y=lowess_Index,x=Year),color="blue") 
+  geom_hline(yintercept=calc75_allyears$SSBmsy,linetype="dashed") +
+  geom_hline(yintercept=calc65_allyears$SSBmsy,linetype="dashed",color="red") +
+  geom_hline(yintercept=calc90_allyears$SSBmsy,linetype="dashed",color="blue") 
