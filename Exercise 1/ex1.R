@@ -12,7 +12,7 @@ D <- read.csv(paste0(getwd(),"/Exercise 1/ex1_indices.csv"))
 head(C)
 tail(D)
 
-#Calculate CPUE for purse seine fleet in SWNS/BoF
+#Calculate CPUE for purse seine fleet in MU1
 D$PS_CPUE <- (D$PS_Catch_MU1)/D$PS_Effort
 
 ########################################################################################################################

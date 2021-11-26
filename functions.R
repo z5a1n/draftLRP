@@ -35,7 +35,7 @@ survivorship_F <- function(f=0,M,n_ages,sel,message=T){
 
 
 #################################################################################################
-# MSY Reference Points
+# MSY Reference Points for BH
 #################################################################################################
 
 # M can be a constant or vector
@@ -81,5 +81,56 @@ MSYcalc <- function(M,waa,mat,sel,a,b){
    names(output) <- c("Fmsy","msy","SSBmsy")
    return(output)
    
+  } 
+}
+
+
+
+#################################################################################################
+# MSY Reference Points for Ricker
+#################################################################################################
+
+# M can be a constant or vector
+# waa = weight-at-age vector
+# mat = maturity-at-age vector
+# sel = vulnerability-at-age vector
+# all vectors must be of same length
+# a and b are the Ricker a and b parameters
+MSYcalc_Ricker <- function(M,waa,mat,sel,a,b){
+  
+  output <- list()
+  
+  if(length(M)==1){
+    message(paste0("Constant M = ",M," used for all ages"))
+    M=rep(M,length(waa))
+  }  
+  if(length(waa) != length(mat) | length(waa) != length(sel)){
+    message("at-age vectors are not the same length")
+    return(NA)
+  }
+  
+  f <- seq(0,5,0.01)
+  phi_f <- rep(NA,length(f))
+  YPR_a <- SURV_a <- matrix(NA,ncol=length(waa),nrow=length(f))
+  rownames(SURV_a)<-rownames(YPR_a)<-f
+  
+  if(length(waa) == length(mat) & length(waa) == length(sel)){
+    for(i in 1:length(f)){
+      SURV_a[i,] <- survivorship_F(f=f[i],M=M,n_ages=length(sel),sel=sel,message=F)
+      for(j in 1:ncol(YPR_a)){
+        YPR_a[i,j] <- SURV_a[i,j]*waa[j]*(1-exp(-(M[j]+f[i]*sel[j])))*f[i]*sel[j]/(M[j]+f[i]*sel[j])
+      }
+      phi_f[i] <- sum(SURV_a[i,]*waa*mat)
+    }  
+    ypr <- rowSums(YPR_a) 
+    eq_rec_f <- log(a*phi_f)/(b*phi_f)
+    eq_rec_f[eq_rec_f<0] <- 0
+    yield <- ypr*eq_rec_f
+    output[[1]] <- f_msy <- f[which(yield==max(yield))]
+    output[[2]] <- msy <- yield[which(yield==max(yield))]
+    output[[3]] <- ssb_msy <- (1-lambert_W0(exp(1-exp(a))))/b #https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4800783/
+    names(output) <- c("Fmsy","msy","SSBmsy")
+    return(output)
+    
   } 
 }
